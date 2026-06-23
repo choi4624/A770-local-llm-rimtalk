@@ -6,9 +6,31 @@ This repository contains **configuration and scripts only**. Model weights are d
 
 ## Architecture
 
-```
-RimTalk mod  -->  rimtalk-gateway (:11435)  -->  Ollama on host (:11434, A770 GPU)
-Browser      -->  open-webui (:3000)        -->  Ollama on host (:11434)
+```mermaid
+flowchart TB
+    subgraph GPU0["GPU0 — Intel Arc B580"]
+        DISP["Display / Games"]
+    end
+
+    subgraph HOST["Windows Host — System RAM"]
+        subgraph WSL["Docker Desktop — vmmemWSL ~4 GB"]
+            GW["rimtalk-gateway<br/>:11435<br/><i>injects reasoning_effort: none</i>"]
+            WEB["open-webui<br/>:3000"]
+        end
+        OLL["Ollama :11434<br/>llama-server ~1 GB RAM"]
+    end
+
+    subgraph GPU1["GPU1 — Intel Arc A770 — VRAM ~8–10 GB"]
+        MDL["gemma4-e4b-gpu<br/>inference"]
+    end
+
+    RIM["RimTalk mod"] -->|"http://127.0.0.1:11435/v1"| GW
+    BRW["Browser"] -->|"http://localhost:3000"| WEB
+    GW -->|"host.docker.internal:11434"| OLL
+    WEB -->|"host.docker.internal:11434"| OLL
+    OLL -->|"GGML_VK_VISIBLE_DEVICES=1"| MDL
+
+    DISP -.->|"not used for LLM"| GPU0
 ```
 
 | Component | URL | Notes |
@@ -103,10 +125,7 @@ Gemma 4를 **Intel Arc A770**(LLM) + **B580**(디스플레이)에서 돌리고, 
 
 ## 구성
 
-```
-RimTalk 모드  -->  rimtalk-gateway (:11435)  -->  호스트 Ollama (:11434, A770 GPU)
-브라우저      -->  open-webui (:3000)        -->  호스트 Ollama (:11434)
-```
+구조도는 [상단 Architecture](#architecture) Mermaid 다이어그램을 참고하세요.
 
 | 구성 요소 | URL | 비고 |
 |-----------|-----|------|
