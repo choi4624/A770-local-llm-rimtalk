@@ -1,0 +1,42 @@
+# Open WebUI + RimTalk gateway — host Ollama (Intel Arc A770 Vulkan)
+# Ollama runs on the host: scripts/start-ollama-gpu.ps1
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: gemma-webui
+    ports:
+      - "3000:8080"
+    volumes:
+      - open_webui_data:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - WEBUI_SECRET_KEY=local-dev-secret
+      - DEFAULT_MODELS=gemma4-e4b-gpu
+      - RAG_EMBEDDING_MODEL_AUTO_UPDATE=false
+      - RAG_RERANKING_MODEL_AUTO_UPDATE=false
+      - OFFLINE_MODE=true
+      - AIOHTTP_CLIENT_TIMEOUT=600
+      - AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST=5
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  rimtalk-gateway:
+    build:
+      context: ./rimtalk-gateway
+      dockerfile: Dockerfile
+    container_name: rimtalk-gateway
+    ports:
+      - "11435:11435"
+    volumes:
+      - ./config/rimtalk-gateway.json:/app/rimtalk-gateway.json:ro
+    environment:
+      - RIMGATEWAY_CONFIG=/app/rimtalk-gateway.json
+      - RIMGATEWAY_UPSTREAM=http://host.docker.internal:11434
+      - RIMGATEWAY_LISTEN_HOST=0.0.0.0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  open_webui_data:

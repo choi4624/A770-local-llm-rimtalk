@@ -1,0 +1,5 @@
+# Gemma 4 E4B — Intel Arc A770 16GB (Vulkan)
+# RimTalk: 짧은 JSONL 대화 생성용. 가중치는 `ollama pull gemma4:e4b` 로 별도 다운로드.
+FROM gemma4:e4b
+PARAMETER num_ctx 8192
+PARAMETER num_thread 20

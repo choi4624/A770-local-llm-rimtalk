@@ -1,0 +1,16 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 11435,
+  "upstream": "http://127.0.0.1:11434",
+  "inject": {
+    "reasoning_effort": "none",
+    "trim_model_name": true,
+    "max_tokens": null,
+    "force_model": null
+  },
+  "paths": {
+    "transform_chat_completions": true,
+    "transform_responses": true
+  },
+  "logging": true
+}

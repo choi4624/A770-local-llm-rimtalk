@@ -1,0 +1,34 @@
+# Model weights — download via `ollama pull`, never commit
+*.gguf
+*.gguf.*
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# Ollama local cache
+.ollama/
+
+# Runtime / secrets
+.env
+.env.*
+*.log
+
+# Docker volumes (local data)
+data/
+
+# OS / editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Scratch / local-only
+Modelfile.*-test
