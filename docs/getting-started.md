@@ -29,62 +29,42 @@ git clone <your-repo-url>
 cd <repo-folder>
 ```
 
-## Step 2 — Start Ollama on A770
+## Step 2 — Start the full stack
+
+```powershell
+cd scripts
+.\startup.ps1
+```
+
+This runs in order:
+
+1. Host Ollama on A770 (`OLLAMA_VULKAN=1`, `GGML_VK_VISIBLE_DEVICES=1`)
+2. `ollama pull gemma4:e4b` + create `gemma4-e4b-gpu` (first run only, ~9.6GB)
+3. Model warmup on GPU
+4. Docker stack `llm` (Open WebUI + rimtalk-gateway)
+
+Verify:
+
+```powershell
+ollama ps          # 100% GPU
+docker compose -p llm ps
+```
+
+Optional:
+
+```powershell
+.\startup.ps1 -SkipWarmup        # model already loaded
+.\startup.ps1 -Register          # autostart on Windows login
+.\scripts\measure-tps.ps1 -Model gemma4-e4b-gpu
+```
+
+Ollama only (no Docker):
 
 ```powershell
 .\scripts\start-ollama-gpu.ps1
 ```
 
-This script:
-
-1. Sets user env: `OLLAMA_VULKAN=1`, `GGML_VK_VISIBLE_DEVICES=1`, `OLLAMA_HOST=0.0.0.0:11434`
-2. Restarts Ollama
-3. Runs `ollama pull gemma4:e4b` (downloads weights — **not in git**)
-4. Creates custom model `gemma4-e4b-gpu` from `modelfiles/gemma4-e4b-gpu`
-
-Check GPU offload:
-
-```powershell
-ollama run gemma4-e4b-gpu "hello"
-# In another terminal:
-ollama ps
-# Expect: 100% GPU
-```
-
-Optional speed check:
-
-```powershell
-.\scripts\measure-tps.ps1 -Model gemma4-e4b-gpu
-```
-
-## Step 3 — Start Docker services
-
-```powershell
-.\scripts\start-docker.ps1
-```
-
-Or start everything in one go (Ollama + Docker):
-
-```powershell
-.\scripts\start-docker.ps1
-```
-
-`docker compose` starts:
-
-| Service | Port | Purpose |
-|---------|------|---------|
-| `gemma-webui` | 3000 | Browser chat UI |
-| `rimtalk-gateway` | 11435 | RimTalk OpenAI proxy |
-
-Both containers talk to **host Ollama** via `host.docker.internal:11434`.
-
-Gateway only:
-
-```powershell
-.\scripts\start-rimtalk-gateway.ps1
-```
-
-## Step 4 — Configure RimTalk
+## Step 3 — Configure RimTalk
 
 In RimTalk mod settings:
 
@@ -98,7 +78,7 @@ Do **not** point RimTalk directly at `:11434` unless you can send `reasoning_eff
 
 The gateway injects `reasoning_effort: "none"` automatically. See [configuration.md](configuration.md).
 
-## Step 5 — Open WebUI (optional)
+## Step 4 — Open WebUI (optional)
 
 1. Open http://localhost:3000
 2. Create a local account (first user = admin)
@@ -106,20 +86,24 @@ The gateway injects `reasoning_effort: "none"` automatically. See [configuration
 
 ## Daily usage
 
-After reboot:
+After reboot (if registered):
 
 ```powershell
-# 1) Ollama on GPU (host)
-.\scripts\start-ollama-gpu.ps1
-
-# 2) Docker stacks (if not set to auto-start)
-docker compose up -d
+# Automatic via Startup\LLM-Stack.cmd
+# Requires Docker Desktop "start on login"
 ```
 
-Stop Docker:
+Manual:
 
 ```powershell
-docker compose down
+cd scripts
+.\startup.ps1
+```
+
+Stop:
+
+```powershell
+docker compose -p llm down    # from parent D:\llm when nested
 ```
 
 ## Troubleshooting
