@@ -13,6 +13,7 @@
 # Runtime / secrets
 .env
 .env.*
+config/active-model.local.json
 *.log
 
 # Docker volumes (local data)

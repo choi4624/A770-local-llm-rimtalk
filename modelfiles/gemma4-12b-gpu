@@ -1,0 +1,4 @@
+# Gemma 4 12B — Intel Arc A770 16GB (Vulkan)
+FROM gemma4:12b
+PARAMETER num_ctx 8192
+PARAMETER num_thread 20

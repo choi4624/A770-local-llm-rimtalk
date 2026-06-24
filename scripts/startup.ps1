@@ -1,9 +1,11 @@
-# Windows 로그인 시 LLM 스택 자동 기동 + 시작 프로그램 등록
+﻿# Windows login autostart + LLM stack (Ollama GPU + Docker)
 param(
     [switch]$Register,
     [switch]$Unregister,
     [switch]$Status,
     [switch]$Boot,
+    [string]$Model = "",
+    [switch]$ListModels,
     [switch]$SkipWarmup,
     [switch]$SkipOllama
 )
@@ -47,32 +49,32 @@ rem LLM stack: Ollama (host GPU) + Open WebUI + RimTalk gateway
 powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$ps1" -Boot
 "@
     Set-Content -Path $LauncherPath -Value $content -Encoding ASCII
-    Write-Host "시작 프로그램 등록 완료"
+    Write-Host "[OK] Startup registered"
     Write-Host "  $LauncherPath"
-    Write-Host "  로그: $LogFile"
+    Write-Host "  Log: $LogFile"
     Write-Host ""
-    Write-Host "해제: .\startup.ps1 -Unregister"
+    Write-Host "Unregister: .\startup.ps1 -Unregister"
 }
 
 function Unregister-LlmStartup {
     if (Test-Path $LauncherPath) {
         Remove-Item $LauncherPath -Force
-        Write-Host "시작 프로그램 해제: $LauncherPath"
+        Write-Host "[OK] Startup removed: $LauncherPath"
     } else {
-        Write-Host "등록된 시작 프로그램 없음"
+        Write-Host "Not registered"
     }
 }
 
 function Show-LlmStartupStatus {
     if (Test-Path $LauncherPath) {
-        Write-Host "등록됨: $LauncherPath"
+        Write-Host "Registered: $LauncherPath"
         Get-Content $LauncherPath
     } else {
-        Write-Host "미등록"
+        Write-Host "Not registered"
     }
     if (Test-Path $LogFile) {
         Write-Host ""
-        Write-Host "최근 로그 ($LogFile):"
+        Write-Host "Recent log: $LogFile"
         Get-Content $LogFile -Tail 10
     }
 }
@@ -94,12 +96,12 @@ if ($Status) {
 
 if ($Boot) {
     Write-BootLog "=== boot start ==="
-    Write-BootLog "Docker Desktop 대기 ..."
+    Write-BootLog "Waiting for Docker Desktop ..."
     if (-not (Wait-DockerDaemon)) {
-        Write-BootLog "ERROR: Docker가 준비되지 않았습니다."
+        Write-BootLog "ERROR: Docker not ready"
         exit 1
     }
-    Write-BootLog "Docker 준비 완료"
+    Write-BootLog "Docker ready"
 }
 
 try {
@@ -111,7 +113,7 @@ try {
     }
 } catch {
     if ($Boot) {
-        Write-BootLog "ERROR: $($_.Exception.Message)"
+        Write-BootLog ("ERROR: " + $_.Exception.Message)
         exit 1
     }
     throw

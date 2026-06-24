@@ -137,8 +137,6 @@ Dot-sourced by other scripts. Sets `OLLAMA_VULKAN=1`, `GGML_VK_VISIBLE_DEVICES=1
 └── docker-compose.yml        # used when repo is standalone
 ```
 
-Parent install (`D:\llm`): use `D:\llm\docker-compose.yml` with `name: llm`.
-
 ---
 
 ## Documentation
@@ -162,6 +160,8 @@ Gemma 4 + Open WebUI + RimTalk 게이트웨이(`reasoning_effort: "none"` 자동
 | 하고 싶은 것 | 명령 |
 |--------------|------|
 | 전체 수동 기동 | `.\scripts\startup.ps1` |
+| **모델 전환** | `.\scripts\startup.ps1 -Model 12b` |
+| 모델 목록 | `.\scripts\startup.ps1 -ListModels` |
 | 로그인 시 자동 기동 등록 | `.\scripts\startup.ps1 -Register` |
 | Ollama만 GPU 재시작 | `.\scripts\start-ollama-gpu.ps1` |
 | 속도 측정 | `.\scripts\measure-tps.ps1` |

@@ -1,0 +1,4 @@
+# Qwen3 8B — GPU (Ollama library / Hugging Face)
+FROM qwen3:8b
+PARAMETER num_ctx 8192
+PARAMETER num_thread 20

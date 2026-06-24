@@ -1,14 +1,12 @@
-# A770 LLM GPU profile (B580=display, A770=LLM, iGPU excluded)
+﻿# A770 LLM GPU profile (B580=display, A770=LLM, iGPU excluded)
 $ErrorActionPreference = "Stop"
 
-# vulkaninfo --summary:
-#   GPU0 = Intel Arc B580 (display / games)
-#   GPU1 = Intel Arc A770 (LLM)
-#   GPU2 = Intel UHD iGPU (unused)
+. (Join-Path $PSScriptRoot "LlmModels.ps1")
+
 $script:A770VulkanIndex = "1"
 
 function Get-RepoRoot {
-    return (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+    return (Get-LlmGatewayRepo -ScriptsDir $PSScriptRoot)
 }
 
 function Set-LlmGpuUserEnv {
@@ -38,23 +36,4 @@ function Restart-OllamaForGpu {
         Start-Process "ollama" -ArgumentList "serve"
     }
     Start-Sleep -Seconds 5
-}
-
-function Ensure-Gemma4E4bGpuModel {
-    param(
-        [string]$ModelfilesDir = (Join-Path (Get-RepoRoot) "modelfiles")
-    )
-
-    if (-not (ollama list 2>$null | Select-String "gemma4:e4b")) {
-        Write-Host "Pulling gemma4:e4b (~9.6GB, not stored in this repo) ..."
-        ollama pull gemma4:e4b
-    }
-
-    if (-not (ollama list 2>$null | Select-String "gemma4-e4b-gpu")) {
-        $threads = (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors
-        if (-not $threads) { $threads = 8 }
-        $mf = Join-Path $ModelfilesDir "gemma4-e4b-gpu"
-        (Get-Content $mf -Raw) -replace "num_thread \d+", "num_thread $threads" | Set-Content $mf -NoNewline
-        ollama create gemma4-e4b-gpu -f $mf
-    }
 }

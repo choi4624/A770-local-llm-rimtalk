@@ -1,0 +1,68 @@
+{
+  "default": "e4b",
+  "models": {
+    "e4b": {
+      "name": "gemma4-e4b-gpu",
+      "label": "Gemma 4 E4B (GPU, 기본)",
+      "pull": "gemma4:e4b",
+      "modelfile": "gemma4-e4b-gpu",
+      "device": "gpu",
+      "vram_gb": 9.6,
+      "rimtalk": true
+    },
+    "e2b": {
+      "name": "gemma4-e2b-cpu",
+      "label": "Gemma 4 E2B (CPU, VRAM 절약)",
+      "pull": "gemma4:e2b",
+      "modelfile": "gemma4-e2b-cpu",
+      "device": "cpu",
+      "vram_gb": 0,
+      "rimtalk": true
+    },
+    "12b": {
+      "name": "gemma4-12b-gpu",
+      "label": "Gemma 4 12B (GPU, 고품질)",
+      "pull": "gemma4:12b",
+      "modelfile": "gemma4-12b-gpu",
+      "device": "gpu",
+      "vram_gb": 7.6,
+      "rimtalk": true
+    },
+    "26b": {
+      "name": "gemma4-26b-gpu",
+      "label": "Gemma 4 26B A4B IT Q4_K_M (GPU)",
+      "pull": "gemma4:26b-a4b-it-q4_K_M",
+      "modelfile": "gemma4-26b-gpu",
+      "device": "gpu",
+      "vram_gb": 16,
+      "rimtalk": false
+    },
+    "qwen3-8b": {
+      "name": "qwen3-8b-gpu",
+      "label": "Qwen3 8B (GPU, HF)",
+      "pull": "qwen3:8b",
+      "modelfile": "qwen3-8b-gpu",
+      "device": "gpu",
+      "vram_gb": 5.2,
+      "rimtalk": false
+    },
+    "llama3.1-8b": {
+      "name": "llama3.1-8b-gpu",
+      "label": "Llama 3.1 8B (GPU, HF)",
+      "pull": "llama3.1:8b",
+      "modelfile": "llama3.1-8b-gpu",
+      "device": "gpu",
+      "vram_gb": 4.9,
+      "rimtalk": false
+    },
+    "mistral": {
+      "name": "mistral-7b-gpu",
+      "label": "Mistral 7B (GPU, HF)",
+      "pull": "mistral:7b",
+      "modelfile": "mistral-7b-gpu",
+      "device": "gpu",
+      "vram_gb": 4.1,
+      "rimtalk": false
+    }
+  }
+}

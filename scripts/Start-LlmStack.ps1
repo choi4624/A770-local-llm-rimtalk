@@ -1,20 +1,14 @@
-# LLM 스택 통합 기동 — 호스트 Ollama(A770) + Docker(Open WebUI + RimTalk gateway)
+﻿# LLM 스택 통합 기동 — 호스트 Ollama(A770) + Docker(Open WebUI + RimTalk gateway)
 param(
+    [string]$Model = "",
+    [switch]$ListModels,
     [switch]$SkipWarmup,
     [switch]$SkipOllama
 )
 
 $ErrorActionPreference = "Stop"
 
-function Get-LlmStackRoot {
-    param([string]$ScriptsDir = $PSScriptRoot)
-    $gatewayRepo = Resolve-Path (Join-Path $ScriptsDir "..")
-    $parentLlm = Join-Path $gatewayRepo ".." | Resolve-Path -ErrorAction SilentlyContinue
-    if ($parentLlm -and (Test-Path (Join-Path $parentLlm "docker-compose.yml"))) {
-        return $parentLlm.Path
-    }
-    return $gatewayRepo.Path
-}
+. (Join-Path $PSScriptRoot "LlmModels.ps1")
 
 $Root = Get-LlmStackRoot
 Set-Location $Root
@@ -27,6 +21,11 @@ if (-not (Test-Path $gpuEnv)) {
     $gpuEnv = Join-Path $PSScriptRoot "Set-LlmGpuEnv.ps1"
 }
 . $gpuEnv
+
+if ($ListModels) {
+    Show-LlmModels
+    exit 0
+}
 
 function Wait-OllamaApi {
     param([int]$TimeoutSec = 60)
@@ -45,17 +44,19 @@ function Wait-OllamaApi {
 function Remove-LegacyDockerProjects {
     $legacyCompose = Join-Path $Root "rimtalk-gateway\docker-compose.yml"
     if ((Split-Path $Root -Leaf) -ne "rimtalk-gateway" -and (Test-Path $legacyCompose)) {
-        Write-Host "  legacy rimtalk-gateway 프로젝트 정리 ..."
-        docker compose -f $legacyCompose -p rimtalk-gateway down --remove-orphans 2>$null
+        Write-Host "  legacy rimtalk-gateway cleanup ..."
+        Invoke-DockerCompose @("-f", $legacyCompose, "-p", "rimtalk-gateway", "down", "--remove-orphans")
     }
 }
+
+$selected = $null
+$envChanged = $false
 
 if (-not $SkipOllama) {
     Write-Host "=== [1/4] 호스트 Ollama (A770 Vulkan) ==="
     Set-LlmGpuUserEnv
     Set-LlmGpuSessionEnv
     Restart-OllamaForGpu
-    Ensure-Gemma4E4bGpuModel -Root $Root
 
     Write-Host "  Ollama API 대기 ..."
     if (-not (Wait-OllamaApi)) {
@@ -64,24 +65,45 @@ if (-not $SkipOllama) {
     Write-Host "  Ollama 준비 완료"
 } else {
     Write-Host "=== [1/4] Ollama 시작 건너뜀 (-SkipOllama) ==="
-}
-
-if (-not $SkipWarmup) {
-    Write-Host "=== [2/4] 모델 워밍업 (gemma4-e4b-gpu) ==="
-    $null = "hi" | ollama run gemma4-e4b-gpu 2>&1
-    $ps = ollama ps 2>&1 | Out-String
-    if ($ps -notmatch "100% GPU") {
-        Write-Host "  경고: GPU 오프로드 미확인 — ollama ps 로 확인하세요"
-    } else {
-        Write-Host "  GPU 워밍업 완료"
+    if (-not (Wait-OllamaApi -TimeoutSec 5)) {
+        throw "Ollama가 실행 중이 아닙니다. -SkipOllama 없이 실행하세요."
     }
-} else {
-    Write-Host "=== [2/4] 워밍업 건너뜀 (-SkipWarmup) ==="
 }
 
-Write-Host "=== [3/4] Docker 스택 (llm) ==="
+Write-Host "=== [2/4] 모델 선택 · 전환 ==="
+$prev = try { Get-LlmActiveModel } catch { $null }
+if ($Model) {
+    $selected = Switch-LlmModel -Selector $Model -SkipWarmup:$SkipWarmup
+    if ($prev -and $prev.Name -ne $selected.Name) {
+        Write-Host "  전환: $($prev.Name) -> $($selected.Name)"
+    }
+} elseif ($SkipWarmup) {
+    $selected = if ($prev) { $prev } else { Resolve-LlmModel (Get-LlmModelCatalog).default }
+    Set-LlmDeviceEnv $selected.Device
+    Ensure-LlmModel $selected
+    $envChanged = Sync-LlmDockerEnv $selected
+} else {
+    $selector = if ($prev) { $prev.Alias } else { (Get-LlmModelCatalog).default }
+    $selected = Switch-LlmModel -Selector $selector -SkipWarmup:$false
+}
+
+if (-not $selected) {
+    $selected = Resolve-LlmModel $(if ($Model) { $Model } else { (Get-LlmModelCatalog).default })
+}
+
+Write-Host "  활성: $($selected.Name) ($($selected.Label))"
+
+Write-Host "=== [3/4] Docker stack (llm) ==="
 Remove-LegacyDockerProjects
-docker compose up -d --build --remove-orphans
+if (-not $envChanged) {
+    $envChanged = Sync-LlmDockerEnv $selected
+}
+if ($envChanged) {
+    Invoke-DockerCompose @("up", "-d", "--build", "--remove-orphans", "--force-recreate", "open-webui")
+    Invoke-DockerCompose @("up", "-d", "--build", "--remove-orphans")
+} else {
+    Invoke-DockerCompose @("up", "-d", "--build", "--remove-orphans")
+}
 
 Write-Host "=== [4/4] 서비스 대기 ==="
 $webReady = $false
@@ -110,6 +132,8 @@ if ($webReady -and $gwReady) {
 Write-Host "  웹 채팅   : http://localhost:3000"
 Write-Host "  Ollama    : http://localhost:11434/v1"
 Write-Host "  RimTalk   : http://localhost:11435/v1"
-Write-Host "  기본 모델 : gemma4-e4b-gpu"
+Write-Host "  활성 모델 : $($selected.Name)"
 Write-Host ""
-Write-Host "중지: docker compose -p llm down"
+Write-Host "모델 변경: .\startup.ps1 -Model <별칭>   (예: e2b, 12b, 26b, qwen3-8b)"
+Write-Host "목록     : .\startup.ps1 -ListModels"
+Write-Host "중지     : docker compose -p llm down"

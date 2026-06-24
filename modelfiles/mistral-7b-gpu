@@ -1,0 +1,4 @@
+# Mistral 7B — GPU (mistralai / Ollama library)
+FROM mistral:7b
+PARAMETER num_ctx 8192
+PARAMETER num_thread 20
